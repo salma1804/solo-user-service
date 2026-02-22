@@ -4,8 +4,10 @@ import com.fooddelivery.user_service.dto.CartItemDTO;
 import com.fooddelivery.user_service.dto.OrderRequestDTO;
 import com.fooddelivery.user_service.dto.OrderResponseDTO;
 import com.fooddelivery.user_service.service.OrderService;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -13,24 +15,51 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/users/orders")
 @RequiredArgsConstructor
+@PreAuthorize("hasRole('USER')")
 public class OrderController {
 
     private final OrderService orderService;
 
+    private String extractJwt(HttpServletRequest request) {
+        String header = request.getHeader("Authorization");
+        if (header != null && header.startsWith("Bearer ")) {
+            return header.substring(7);
+        }
+        return null;
+    }
+
+    // -------------------------
+    // ORDER ENDPOINTS
+    // -------------------------
+
     @PostMapping("/create")
-    public ResponseEntity<OrderResponseDTO> createOrder(@RequestBody OrderRequestDTO orderRequestDTO) {
-        return ResponseEntity.ok(orderService.placeOrder(orderRequestDTO));
+    public ResponseEntity<OrderResponseDTO> createOrder(
+            @RequestBody OrderRequestDTO orderRequestDTO,
+            HttpServletRequest request) {
+        String token = extractJwt(request);
+        return ResponseEntity.ok(orderService.placeOrder(token, orderRequestDTO));
     }
-    @GetMapping("/history/{userId}")
-    public ResponseEntity<List<OrderResponseDTO>> getUserOrderHistory(@PathVariable Long userId) {
-        return ResponseEntity.ok(orderService.getUserOrderHistory(userId));
+
+    @GetMapping("/{orderId}")
+    public ResponseEntity<OrderResponseDTO> getOrderById(
+            @PathVariable Long orderId,
+            HttpServletRequest request) {
+        String token = extractJwt(request);
+        return ResponseEntity.ok(orderService.getOrderById(token, orderId));
     }
-    @PostMapping("/cart/add")
-    public ResponseEntity<CartItemDTO> addToCart(@RequestBody CartItemDTO cartItem) {
-        // Pass both cartItem and userId from DTO to the service (or Feign client)
-        CartItemDTO addedItem = orderService.addToCart( cartItem.getUserId(),cartItem);
-        return ResponseEntity.ok(addedItem);
+
+    @PostMapping("/from-cart")
+    public ResponseEntity<OrderResponseDTO> createOrderFromCart(
+            @RequestParam Long userId,
+            @RequestBody OrderRequestDTO orderRequestDTO,
+            HttpServletRequest request) {
+        String token = extractJwt(request);
+        return ResponseEntity.ok(orderService.createOrderFromCart(token, userId, orderRequestDTO));
     }
+
+
+
+
 
 
 }

@@ -10,6 +10,7 @@ import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @Component
@@ -22,55 +23,40 @@ public class JwtTokenProvider {
     private long jwtExpiration;
 
     /**
-     * Generates a JWT token for the given username without additional claims.
-     *
-     * @param username the username to include in the token
-     * @return the generated JWT token as a String
+     * Génère un token avec username et roles
      */
-    public String generateToken(String username) {
-        return generateToken(username, new HashMap<>());
-    }
-
-    /**
-     * Generates a JWT token for the given username with custom claims.
-     * The token includes the username as the subject (sub claim),
-     * issued time, and expiration time based on configuration.
-     *
-     * @param username the username to include in the token
-     * @param claims a map of custom claims to include in the token
-     * @return the generated JWT token as a String
-     */
-    public String generateToken(String username, Map<String, Object> claims) {
+    public String generateToken(String username, List<String> roles) {
+        Map<String, Object> claims = new HashMap<>();
         claims.put("sub", username);
+
+        // ✅ Ajouter les rôles ici
+        claims.put("roles", roles);
 
         SecretKey key = Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));
 
         return Jwts.builder()
-                .claims(claims)
-                .issuedAt(new Date())
-                .expiration(new Date(System.currentTimeMillis() + jwtExpiration))
+                .setClaims(claims)
+                .setIssuedAt(new Date())
+                .setExpiration(new Date(System.currentTimeMillis() + jwtExpiration))
                 .signWith(key)
                 .compact();
     }
 
     /**
-     * Extracts the username from a JWT token.
-     * The username is stored as the subject (sub) claim in the token.
-     *
-     * @param token the JWT token to extract the username from
-     * @return the username extracted from the token
+     * Génère un token simple sans rôle (optionnel)
      */
+    public String generateToken(String username) {
+        return generateToken(username, List.of());
+    }
+
     public String getUsernameFromToken(String token) {
         return getClaimsFromToken(token).getSubject();
     }
 
-    /**
-     * Validates the integrity and expiration of a JWT token.
-     * Returns true if the token is valid and not expired, false otherwise.
-     *
-     * @param token the JWT token to validate
-     * @return true if the token is valid, false if it's invalid or expired
-     */
+    public List<String> getRolesFromToken(String token) {
+        return getClaimsFromToken(token).get("roles", List.class);
+    }
+
     public boolean validateToken(String token) {
         try {
             SecretKey key = Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));
@@ -84,13 +70,6 @@ public class JwtTokenProvider {
         }
     }
 
-    /**
-     * Parses and extracts all claims from a JWT token.
-     * This is a private helper method used internally to get token claims.
-     *
-     * @param token the JWT token to parse
-     * @return the Claims object containing all claims from the token
-     */
     private Claims getClaimsFromToken(String token) {
         SecretKey key = Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));
         return Jwts.parser()
@@ -99,5 +78,4 @@ public class JwtTokenProvider {
                 .parseSignedClaims(token)
                 .getPayload();
     }
-
 }

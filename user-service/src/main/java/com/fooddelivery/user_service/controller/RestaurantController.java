@@ -1,40 +1,45 @@
 package com.fooddelivery.user_service.controller;
 
-import com.fooddelivery.user_service.dto.MenuDTO;
+
 import com.fooddelivery.user_service.dto.RestaurantDTO;
-import com.fooddelivery.user_service.service.UserRestaurantService;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.*;
+import com.fooddelivery.user_service.service.RestaurantService;
 
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/users/restaurants")
 @RequiredArgsConstructor
+@PreAuthorize("hasRole('USER')")
 public class RestaurantController {
 
-    private final UserRestaurantService userRestaurantService;
+    private final RestaurantService restaurantService;
+
+    private String extractJwt(HttpServletRequest request) {
+        String header = request.getHeader("Authorization");
+        if (header != null && header.startsWith("Bearer ")) {
+            return header.substring(7);
+        }
+        return null;
+    }
 
     @GetMapping
-    public ResponseEntity<List<RestaurantDTO>> getAllRestaurants() {
-        List<RestaurantDTO> restaurants = userRestaurantService.getAllRestaurants();
-        return ResponseEntity.ok(restaurants);
+    public ResponseEntity<List<RestaurantDTO>> getAllRestaurants(HttpServletRequest request) {
+        String token = extractJwt(request);
+        return ResponseEntity.ok(restaurantService.getAllRestaurants(token));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<RestaurantDTO> getRestaurantById(@PathVariable Long id) {
-        RestaurantDTO restaurant = userRestaurantService.getRestaurantById(id);
-        return ResponseEntity.ok(restaurant);
+    public ResponseEntity<RestaurantDTO> getRestaurantById(
+            @PathVariable Long id,
+            HttpServletRequest request) {
+        String token = extractJwt(request);
+        return ResponseEntity.ok(restaurantService.getRestaurantById(id, token));
     }
-    @GetMapping("/{id}/menu")
-    public ResponseEntity<List<MenuDTO>> getMenuItemsByRestaurant(@PathVariable Long id) {
-        List<MenuDTO> menu = userRestaurantService.getMenuByRestaurant(id);
-        return ResponseEntity.ok(menu);
-    }
+
 
 }
-

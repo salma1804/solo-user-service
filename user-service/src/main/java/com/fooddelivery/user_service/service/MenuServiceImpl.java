@@ -14,7 +14,7 @@ public class MenuServiceImpl implements MenuService {
     private final RestaurantClient restaurantClient;
 
     @Override
-    public List<MenuDTO> getMenuForRestaurant(Long restaurantId) {
-        return restaurantClient.getMenuByRestaurant(restaurantId);
+    public List<MenuDTO> getMenuForRestaurant(Long restaurantId, String token) {
+        return restaurantClient.getMenuByRestaurant(restaurantId, "Bearer " + token);
     }
 }

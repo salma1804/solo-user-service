@@ -11,8 +11,7 @@ import java.util.List;
 @NoArgsConstructor
 public class OrderRequestDTO {
 
-    private Long userId;
     private Long restaurantId;
-    private List<OrderItemDTO> items;
-    private PaymentType paymentType;
+    private Long customerId;      // ← renamed from userId
+    private List<OrderItemDTO> orderItems;  // ← renamed from items
 }
